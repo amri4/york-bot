@@ -13,16 +13,29 @@ intents = discord.Intents.default()
 intents.message_content = True
 intents.members = True
 
-bot = commands.Bot(command_prefix=["york ", "york", "York ", "York"], intents=intents, help_command=None)
+
+class YorkBot(commands.Bot):
+    async def setup_hook(self):
+        database.init_db()
+        for ext in ["cogs.help_command", "cogs.greed"]:
+            try:
+                await self.load_extension(ext)
+                print(f"[York] Loaded {ext}")
+            except Exception as e:
+                print(f"[York] ERROR loading {ext}: {e}")
+
+
+bot = YorkBot(
+    command_prefix=["york ", "york", "York ", "York"],
+    intents=intents,
+    help_command=None,
+)
 
 
 @bot.event
 async def on_ready():
-    database.init_db()
-    await bot.load_extension("cogs.help_command")
-    await bot.load_extension("cogs.greed")
     print(f"[York] Online as {bot.user} (ID: {bot.user.id})")
-    print(f"[York] Prefix: york | Satellite 06 — Greed")
+    print(f"[York] Prefix: york  | Satellite 06 — Greed")
 
 
 @bot.event
