@@ -12,7 +12,7 @@ COMMANDS_DATA = {
         "york siblings": "List all six Vegapunk satellites.",
     },
     "❓ Help": {
-        "york?": "Show this help menu.",
+        "york help": "Show this help menu.",
     },
 }
 
@@ -48,7 +48,7 @@ class HelpCog(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
 
-    @commands.command(name="?")
+    @commands.command(name="help", aliases=["?"])
     async def help_command(self, ctx):
         embed = discord.Embed(
             title="🍖 York — Satellite 06 (Greed)",
