@@ -42,27 +42,25 @@ class FeedView(discord.ui.View):
         self.guild_id = guild_id
         self.feeders = set()
 
-    @discord.ui.button(label="Feed York 🍖  (−50 berries)", style=discord.ButtonStyle.primary)
+    @discord.ui.button(label="Feed York 🍖  (FREE — earn bounty!)", style=discord.ButtonStyle.primary)
     async def feed_button(self, interaction: discord.Interaction, button: discord.ui.Button):
         user_id = interaction.user.id
         guild_id = self.guild_id
 
-        berries = shared_db.get_berries(user_id, guild_id)
-        if berries < 50:
-            await interaction.response.send_message(
-                "❌ You don't have enough berries! You need **50 🍓** to feed York.",
-                ephemeral=True,
-            )
-            return
-
         old_trust = shared_db.get_trust(user_id, guild_id)
-        shared_db.add_berries(user_id, guild_id, -50, reason="Fed York")
+        old_level, _, _ = shared_db.get_trust_level(old_trust)
+
+        # Bounty reward scales with trust level
+        BOUNTY_BY_LEVEL = {0: 25, 1: 40, 2: 60, 3: 85, 4: 120}
+        bounty = BOUNTY_BY_LEVEL[old_level]
+
+        shared_db.add_berries(user_id, guild_id, bounty, reason="Bounty for feeding York")
         shared_db.add_trust(user_id, guild_id, 20)
         shared_db.feed_york(guild_id, user_id)
         self.feeders.add(user_id)
 
         new_trust = shared_db.get_trust(user_id, guild_id)
-        level, label, _ = shared_db.get_trust_level(new_trust)
+        _, label, _ = shared_db.get_trust_level(new_trust)
 
         state = shared_db.get_york_state(guild_id)
         hunger = state[0]
@@ -73,10 +71,10 @@ class FeedView(discord.ui.View):
             description=f"{interaction.user.mention} fed York!\n\n*\"{response_msg}\"*",
             color=discord.Color.purple(),
         )
-        embed.add_field(name="Berries Spent", value="50 🍓", inline=True)
-        embed.add_field(name="Trust Gained", value="+20 💜", inline=True)
-        embed.add_field(name="York's Hunger", value=f"{hunger}/100", inline=True)
-        embed.add_field(name="Your Trust Level", value=f"**{label}** ({new_trust} pts)", inline=True)
+        embed.add_field(name="🍓 Bounty Earned", value=f"+{bounty} berries", inline=True)
+        embed.add_field(name="💜 Trust Gained", value="+20 pts", inline=True)
+        embed.add_field(name="🍖 York's Hunger", value=f"{hunger}/100", inline=True)
+        embed.add_field(name="Trust Level", value=f"**{label}** ({new_trust} pts)", inline=True)
 
         milestone_msg = None
         for threshold, msg in TRUST_MILESTONES.items():
@@ -140,8 +138,8 @@ class HungerCog(commands.Cog):
             color=color,
         )
         embed.add_field(name="Hunger Level", value=f"`{bar}` {hunger}/100", inline=False)
-        embed.add_field(name="Cost to Feed", value="50 🍓 berries", inline=True)
-        embed.add_field(name="Trust Reward", value="+20 💜", inline=True)
+        embed.add_field(name="Cost to Feed", value="FREE 🆓", inline=True)
+        embed.add_field(name="Reward", value="Bounty 🍓 + Trust 💜", inline=True)
         embed.set_footer(text="Satellite 06 — York (Greed) | Punk Records System")
         view = FeedView(guild_id=guild_id)
         await channel.send(embed=embed, view=view)
@@ -198,11 +196,11 @@ class HungerCog(commands.Cog):
             color=discord.Color.purple(),
         )
         perks_data = [
-            ("Lv.0 — Stranger", "0 pts", "No bonuses. York barely notices you."),
-            ("Lv.1 — Acquaintance", "100 pts", "+10% daily berry multiplier"),
-            ("Lv.2 — Friend", "300 pts", "+20% daily berry multiplier"),
-            ("Lv.3 — Close Friend", "700 pts", "+30% daily berry multiplier"),
-            ("Lv.4 — Trusted", "1500 pts", "+50% daily berry multiplier • Maximum bonuses"),
+            ("Lv.0 — Stranger",    "0 pts",    "Feed bounty: **25 🍓** • No daily multiplier bonus"),
+            ("Lv.1 — Acquaintance","100 pts",  "Feed bounty: **40 🍓** • +10% daily berry multiplier"),
+            ("Lv.2 — Friend",      "300 pts",  "Feed bounty: **60 🍓** • +20% daily berry multiplier"),
+            ("Lv.3 — Close Friend","700 pts",  "Feed bounty: **85 🍓** • +30% daily berry multiplier"),
+            ("Lv.4 — Trusted",     "1500 pts", "Feed bounty: **120 🍓** • +50% daily berry multiplier • Max bonuses"),
         ]
         for name, req, desc in perks_data:
             embed.add_field(name=f"{name} ({req})", value=desc, inline=False)
@@ -234,8 +232,8 @@ class HungerCog(commands.Cog):
             color=discord.Color.purple(),
         )
         embed.add_field(name="Hunger Level", value=f"`{bar}` {hunger}/100", inline=False)
-        embed.add_field(name="Cost", value="50 🍓", inline=True)
-        embed.add_field(name="Trust Reward", value="+20 💜", inline=True)
+        embed.add_field(name="Cost", value="FREE 🆓", inline=True)
+        embed.add_field(name="Reward", value="Bounty 🍓 + Trust 💜", inline=True)
         embed.set_footer(text="Satellite 06 — York (Greed)")
         view = FeedView(guild_id=ctx.guild.id)
         await ctx.send(embed=embed, view=view)
