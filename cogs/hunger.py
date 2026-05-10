@@ -47,6 +47,13 @@ class FeedView(discord.ui.View):
         user_id = interaction.user.id
         guild_id = self.guild_id
 
+        if user_id in self.feeders:
+            await interaction.response.send_message(
+                "...You already fed me this time. Don't be greedy. Wait for the next alert. 😒",
+                ephemeral=True,
+            )
+            return
+
         old_trust = shared_db.get_trust(user_id, guild_id)
         old_level, _, _ = shared_db.get_trust_level(old_trust)
 
