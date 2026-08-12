@@ -1,56 +1,45 @@
 import os
+import asyncio
 import discord
 from discord.ext import commands
 from dotenv import load_dotenv
-import shared_db
-
-load_dotenv()
-shared_db.init_db()
+import mycord
 
 intents = discord.Intents.default()
-intents.message_content = True
-intents.members = True
+intents.message_content = True  
 
-bot = commands.Bot(
-    command_prefix=["york ", "york", "York ", "York"],
-    intents=intents,
-    help_command=None,
-)
+bot = commands.Bot(command_prefix="!", intents=intents)
 
-EXTENSIONS = [
-    "cogs.help_command",
-    "cogs.hunger",
-]
-
-
-async def setup_hook():
-    for ext in EXTENSIONS:
-        try:
-            await bot.load_extension(ext)
-            print(f"[YORK] Loaded {ext}")
-        except Exception as e:
-            print(f"[YORK] Failed to load {ext}: {e}")
-
-bot.setup_hook = setup_hook
-
+async def load_extensions():
+    print("📂 Scanning for cogs...")
+    if os.path.exists("./cogs"):
+        for filename in os.listdir("./cogs"):
+            if filename.endswith(".py") and not filename.startswith("__"):
+                try:
+                    await bot.load_extension(f"cogs.{filename[:-3]}")
+                    print(f"  └─ Loaded cog: {filename}")
+                except Exception as e:
+                    print(f"  ❌ Failed to load cog {filename}: {e}")
+    else:
+        print("⚠️ No 'cogs' folder found.")
 
 @bot.event
 async def on_ready():
-    print(f"[YORK] Online as {bot.user} | Satellite 06 — Greed (Hunger & Trust)")
-    print(f"[YORK] DB path: {shared_db.get_db_path()}")
-    print(f"[YORK] Guilds: {len(bot.guilds)}")
+    print(f"🤖 Success! Logged in as {bot.user.name}")
+    print("⚡ Bot is online and listening.")
 
-
-@bot.event
-async def on_command_error(ctx, error):
-    if isinstance(error, commands.CommandNotFound):
+async def main():
+    await load_extensions()
+    
+    # Grab the token from the environment securely
+    load_dotenv()
+    token = os.getenv("DISCORD_TOKEN")
+    
+    if not token:
+        print("❌ CRITICAL ERROR: 'DISCORD_TOKEN' environment variable is missing!")
+        print("Please add it to your MonkeyBytes panel variables or your local .env file.")
         return
-    if isinstance(error, commands.MissingRequiredArgument):
-        await ctx.send(f"Missing argument: `{error.param.name}`. Use `york help` for usage.")
-    elif isinstance(error, commands.MemberNotFound):
-        await ctx.send("Member not found. Mention them directly.")
-    else:
-        print(f"[YORK] Error in {ctx.command}: {error}")
 
+    await bot.start(token)
 
-bot.run(os.getenv("DISCORD_TOKEN"))
+asyncio.run(main())
